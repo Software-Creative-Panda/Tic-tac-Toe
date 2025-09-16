@@ -1,286 +1,252 @@
-class TicTacToe {
-    constructor() {
-        this.board = Array(9).fill(null);
-        this.currentPlayer = 'X';
-        this.gameActive = true;
-        this.playerScore = 0;
-        this.aiScore = 0;
-        this.difficulty = 'hard';
 
-        this.initGame();
-    }
+        class TicTacToe {
+            constructor() {
+                this.playerScore = 0;
+                this.aiScore = 0;
+                this.username = 'Player';
+                this.promptForUsername();
+            }
 
-    initGame() {
-        this.createBoard();
-        this.setupEventListeners();
-        this.updateScore();
-    }
+            promptForUsername() {
+                const modal = document.getElementById('username-modal');
+                const input = document.getElementById('username-input');
+                const startBtn = document.getElementById('start-game-btn');
+                const gameContainer = document.querySelector('.container');
+                
+                const startGame = () => {
+                    const username = input.value.trim();
+                    if (username) {
+                        this.username = username;
+                    }
+                    modal.classList.add('hidden');
+                    gameContainer.classList.remove('hidden');
+                    this.initGame();
+                };
 
-    createBoard() {
-        const board = document.getElementById('board');
-        board.innerHTML = '';
-        for (let i = 0; i < 9; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.dataset.index = i;
-            board.appendChild(cell);
-        }
-    }
+                startBtn.addEventListener('click', startGame);
+                input.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') {
+                        startGame();
+                    }
+                });
+            }
 
-    setupEventListeners() {
-        document.getElementById('board').addEventListener('click', (e) => {
-            if (!e.target.classList.contains('cell') || !this.gameActive) return;
-            const index = e.target.dataset.index;
-            if (this.board[index]) return;
-            this.makeMove(index, 'X');
-        });
+            initGame() {
+                this.setupGameSettings();
+                this.board = Array(this.boardSize * this.boardSize).fill(null);
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                
+                this.createBoard();
+                this.setupEventListeners();
+                this.updateScore();
+                this.updateStatus();
+            }
 
-        document.getElementById('reset').addEventListener('click', () => this.resetGame());
-        document.getElementById('difficulty').addEventListener('change', (e) => {
-            this.difficulty = e.target.value;
-            this.resetGame();
-        });
-    }
+            setupGameSettings() {
+                this.boardSize = 4;
+                this.winCondition = 4;
+                this.difficulty = 'hard'; // Locked to hard mode
+            }
 
-    makeMove(index, player) {
-        this.board[index] = player;
-        const cell = document.querySelector(`[data-index="${index}"]`);
-        cell.classList.add(player.toLowerCase());
-        cell.textContent = player;
+            createBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
 
-        const winner = this.checkWinner();
-        if (winner) {
-            this.endGame(winner);
-            return;
-        }
-        if (!this.board.includes(null)) {
-            this.endGame('draw');
-            return;
-        }
-
-        this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
-        this.updateStatus();
-
-        if (this.currentPlayer === 'O') {
-            this.aiMove();
-        }
-    }
-
-    aiMove() {
-        let move;
-        switch (this.difficulty) {
-            case 'easy':
-                move = this.getRandomMove();
-                break;
-            case 'medium':
-                move = Math.random() > 0.5 ? this.getBestMove() : this.getRandomMove();
-                break;
-            case 'hard':
-                move = this.getBestMove();
-                break;
-        }
-        setTimeout(() => this.makeMove(move, 'O'), 500);
-    }
-
-    getRandomMove() {
-        const available = this.board.reduce((acc, val, idx) => 
-            val === null ? [...acc, idx] : acc, []);
-        return available[Math.floor(Math.random() * available.length)];
-    }
-
-    getBestMove() {
-        let bestScore = -Infinity;
-        let move;
-        for (let i = 0; i < 9; i++) {
-            if (this.board[i] === null) {
-                this.board[i] = 'O';
-                const score = this.minimax(this.board, 0, false);
-                this.board[i] = null;
-                if (score > bestScore) {
-                    bestScore = score;
-                    move = i;
+                for (let i = 0; i < this.boardSize * this.boardSize; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.index = i;
+                    boardElement.appendChild(cell);
                 }
             }
-        }
-        return move;
-    }
 
-    minimax(board, depth, isMaximizing) {
-        const winner = this.checkWinner();
-        if (winner === 'O') return 10 - depth;
-        if (winner === 'X') return -10 + depth;
-        if (!board.includes(null)) return 0;
+            setupEventListeners() {
+                if (!this.boardListener) {
+                    this.boardListener = (e) => {
+                        if (!e.target.classList.contains('cell') || !this.gameActive) return;
+                        const index = e.target.dataset.index;
+                        if (this.board[index] || this.currentPlayer !== 'X') return;
+                        this.makeMove(parseInt(index), 'X');
+                    };
+                    document.getElementById('board').addEventListener('click', this.boardListener);
+                }
+                
+                document.getElementById('reset').addEventListener('click', () => this.resetGame());
+            }
 
-        if (isMaximizing) {
-            let bestScore = -Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === null) {
-                    board[i] = 'O';
-                    const score = this.minimax(board, depth + 1, false);
-                    board[i] = null;
-                    bestScore = Math.max(score, bestScore);
+            makeMove(index, player) {
+                if (!this.gameActive || this.board[index] !== null) return;
+
+                this.board[index] = player;
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                cell.textContent = player;
+                cell.classList.add(player.toLowerCase());
+
+                const winnerInfo = this.checkWinner();
+                if (winnerInfo) {
+                    this.endGame(winnerInfo);
+                    return;
+                }
+                if (!this.board.includes(null)) {
+                    this.endGame({ winner: 'draw' });
+                    return;
+                }
+
+                this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                this.updateStatus();
+
+                if (this.currentPlayer === 'O') {
+                    document.getElementById('board').style.pointerEvents = 'none';
+                    this.aiMove();
                 }
             }
-            return bestScore;
-        } else {
-            let bestScore = Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (board[i] === null) {
-                    board[i] = 'X';
-                    const score = this.minimax(board, depth + 1, true);
-                    board[i] = null;
-                    bestScore = Math.min(score, bestScore);
+            
+            aiMove() {
+                // Since it's always hard mode, we directly call the strategic move
+                const move = this.getStrategicMove();
+
+                setTimeout(() => {
+                    this.makeMove(move, 'O');
+                    document.getElementById('board').style.pointerEvents = 'auto';
+                }, 600);
+            }
+
+            getStrategicMove() {
+                // 1. Check for a winning move for AI
+                let winningMove = this.findWinningMove('O');
+                if (winningMove !== null) return winningMove;
+                
+                // 2. Block player's winning move
+                let blockingMove = this.findWinningMove('X');
+                if (blockingMove !== null) return blockingMove;
+
+                // 3. Simple heuristic: pick a move near existing 'O's or 'X's
+                const availableMoves = this.getAvailableMoves();
+                const centerMoves = this.getCenterBiasedMoves(availableMoves);
+                if (centerMoves.length > 0) return centerMoves[Math.floor(Math.random() * centerMoves.length)];
+
+                // 4. Fallback to random move
+                return this.getRandomMove();
+            }
+
+            findWinningMove(player) {
+                const availableMoves = this.getAvailableMoves();
+                for (const move of availableMoves) {
+                    const tempBoard = [...this.board];
+                    tempBoard[move] = player;
+                    if (this.checkWinner(tempBoard)) {
+                        return move;
+                    }
                 }
+                return null;
             }
-            return bestScore;
-        }
-    }
 
-    checkWinner() {
-        const wins = [
-            [0, 1, 2], [3, 4, 5], [6, 7, 8],
-            [0, 3, 6], [1, 4, 7], [2, 5, 8],
-            [0, 4, 8], [2, 4, 6]
-        ];
-
-        for (const [a, b, c] of wins) {
-            if (this.board[a] && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
-                return this.board[a];
+            getCenterBiasedMoves(moves) {
+                const scoredMoves = moves.map(move => {
+                    let score = 0;
+                    const { row, col } = this.getCoords(move);
+                    for (let r = -1; r <= 1; r++) {
+                        for (let c = -1; c <= 1; c++) {
+                            if (r === 0 && c === 0) continue;
+                            const neighbor = this.board[this.getIndex(row + r, col + c)];
+                            if (neighbor) score++;
+                        }
+                    }
+                    return { move, score };
+                });
+                scoredMoves.sort((a, b) => b.score - a.score);
+                const bestScore = scoredMoves[0].score;
+                return scoredMoves.filter(m => m.score === bestScore).map(m => m.move);
             }
-        }
-        return null;
-    }
 
-    endGame(result) {
-        this.gameActive = false;
-        if (result === 'X') {
-            this.playerScore++;
-            this.updateStatus('You win!');
-        } else if (result === 'O') {
-            this.aiScore++;
-            this.updateStatus('AI wins!');
-        } else {
-            this.updateStatus('Draw!');
-        }
-        this.updateScore();
-    }
+            getRandomMove() {
+                const available = this.getAvailableMoves();
+                return available[Math.floor(Math.random() * available.length)];
+            }
+            
+            getAvailableMoves() {
+                return this.board.reduce((acc, val, idx) => (val === null ? [...acc, idx] : acc), []);
+            }
+            
+            getCoords(index) {
+                return { row: Math.floor(index / this.boardSize), col: index % this.boardSize };
+            }
 
-    resetGame() {
-        this.board = Array(9).fill(null);
-        this.currentPlayer = 'X';
-        this.gameActive = true;
-        this.createBoard();
-        this.updateStatus();
-    }
+            getIndex(row, col) {
+                if (row < 0 || row >= this.boardSize || col < 0 || col >= this.boardSize) return -1;
+                return row * this.boardSize + col;
+            }
 
-    updateStatus(text) {
-        document.getElementById('status').textContent = text || 
-            `${this.currentPlayer === 'X' ? 'Your' : 'AI'} turn (${this.currentPlayer})`;
-    }
+            checkWinner(boardState = this.board) {
+                for (let i = 0; i < boardState.length; i++) {
+                    if (boardState[i] === null) continue;
 
-    updateScore() {
-        document.getElementById('player-score').textContent = this.playerScore;
-        document.getElementById('ai-score').textContent = this.aiScore;
-    }
-}
+                    const player = boardState[i];
+                    const { row, col } = this.getCoords(i);
+                    const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
 
-document.addEventListener('DOMContentLoaded', () => new TicTacToe());
+                    for (const [dr, dc] of directions) {
+                        const combination = [i];
+                        let count = 1;
+                        for (let j = 1; j < this.winCondition; j++) {
+                            const newRow = row + dr * j;
+                            const newCol = col + dc * j;
+                            const index = this.getIndex(newRow, newCol);
+                            if (index !== -1 && boardState[index] === player) {
+                                combination.push(index);
+                                count++;
+                            } else {
+                                break;
+                            }
+                        }
+                        if (count === this.winCondition) {
+                            return { winner: player, combination };
+                        }
+                    }
+                }
+                return null;
+            }
 
+            highlightWinningCells(combination) {
+                combination.forEach(index => {
+                    const cell = document.querySelector(`[data-index="${index}"]`);
+                    cell.classList.add('win');
+                });
+            }
 
+            endGame(result) {
+                this.gameActive = false;
+                const { winner, combination } = result;
 
-makeMove(index, player) {
-    this.board[index] = player; // Update the board
-    const cell = document.querySelector(`[data-index="${index}"]`);
-    cell.classList.add(player.toLowerCase()); // Add X or O class
-    cell.textContent = player; // Display X or O
+                if (winner === 'X') {
+                    this.playerScore++;
+                    this.updateStatus(`${this.username} wins! 🎉`);
+                    this.highlightWinningCells(combination);
+                } else if (winner === 'O') {
+                    this.aiScore++;
+                    this.updateStatus('AI wins! 🤖');
+                    this.highlightWinningCells(combination);
+                } else {
+                    this.updateStatus('It\'s a Draw!');
+                }
+                this.updateScore();
+            }
 
-    const winner = this.checkWinner(); // Check if the move resulted in a win
-    if (winner) {
-        this.endGame(winner);
-        return;
-    }
-    if (!this.board.includes(null)) { // Check for a draw
-        this.endGame('draw');
-        return;
-    }
+            resetGame() {
+                this.initGame();
+            }
 
-    this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X'; // Switch turns
-    this.updateStatus();
+            updateStatus(text) {
+                document.getElementById('status').textContent = text ||
+                    `${this.currentPlayer === 'X' ? `${this.username}'s` : "AI's"} turn (${this.currentPlayer})`;
+            }
 
-    if (this.currentPlayer === 'O') { // AI's turn
-        this.aiMove();
-    }
-}
-
-
-aiMove() {
-    let move;
-    switch (this.difficulty) {
-        case 'easy':
-            move = this.getRandomMove(); // Random move
-            break;
-        case 'medium':
-            move = Math.random() > 0.5 ? this.getBestMove() : this.getRandomMove(); // Mix of random and smart moves
-            break;
-        case 'hard':
-            move = this.getBestMove(); // Always the best move
-            break;
-    }
-    setTimeout(() => this.makeMove(move, 'O'), 500); // Simulate AI "thinking"
-}
-
-
-minimax(board, depth, isMaximizing) {
-    const winner = this.checkWinner();
-    if (winner === 'O') return 10 - depth; // AI wins
-    if (winner === 'X') return -10 + depth; // Player wins
-    if (!board.includes(null)) return 0; // Draw
-
-    if (isMaximizing) {
-        let bestScore = -Infinity;
-        for (let i = 0; i < 9; i++) {
-            if (board[i] === null) {
-                board[i] = 'O';
-                const score = this.minimax(board, depth + 1, false);
-                board[i] = null;
-                bestScore = Math.max(score, bestScore);
+            updateScore() {
+                document.getElementById('player-name-display').textContent = this.username;
+                document.getElementById('player-score').textContent = this.playerScore;
+                document.getElementById('ai-score').textContent = this.aiScore;
             }
         }
-        return bestScore;
-    } else {
-        let bestScore = Infinity;
-        for (let i = 0; i < 9; i++) {
-            if (board[i] === null) {
-                board[i] = 'X';
-                const score = this.minimax(board, depth + 1, true);
-                board[i] = null;
-                bestScore = Math.min(score, bestScore);
-            }
-        }
-        return bestScore;
-    }
-}
 
-checkWinner() {
-    const wins = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-        [0, 4, 8], [2, 4, 6] // Diagonals
-    ];
-
-    for (const [a, b, c] of wins) {
-        if (this.board[a] && this.board[a] === this.board[b] && this.board[a] === this.board[c]) {
-            return this.board[a]; // Return the winning player (X or O)
-        }
-    }
-    return null; // No winner yet
-}
-
-
-resetGame() {
-    this.board = Array(9).fill(null); // Clear the board
-    this.currentPlayer = 'X'; // Reset to player's turn
-    this.gameActive = true; // Reactivate the game
-    this.createBoard(); // Rebuild the board UI
-    this.updateStatus(); // Reset status message
-}
+        document.addEventListener('DOMContentLoaded', () => new TicTacToe());
