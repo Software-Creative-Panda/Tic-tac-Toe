@@ -9,77 +9,124 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1a202c; /* Equivalent to bg-gray-900 */
+            background-color: #0f172a; /* slate-900 */
+            background-image: radial-gradient(circle at top right, #334155, #0f172a 40%);
+            color: #e2e8f0; /* slate-200 */
+        }
+
+        .game-wrapper {
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(79, 70, 229, 0.3);
         }
 
         .board {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.5rem; /* Equivalent to gap-2 */
-            width: 300px;
-            height: 300px;
+            display: inline-grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 2px solid #475569;
+            border-width: 0 2px 2px 0;
+            background-color: #1e293b;
         }
-
-        @media (min-width: 640px) {
-            .board {
-                width: 400px;
-                height: 400px;
-            }
-        }
-
+        
         .cell {
-            background-color: #2d3748; /* Equivalent to bg-gray-800 */
-            border-radius: 0.5rem; /* Equivalent to rounded-lg */
+            width: 75px;
+            height: 75px;
+            background-color: #1e293b;
+            border: 2px solid #475569;
+            border-width: 2px 0 0 2px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
         }
 
-        .cell:hover {
-            background-color: #4a5568; /* Equivalent to bg-gray-700 */
+        @media (min-width: 640px) {
+            .cell {
+                width: 100px;
+                height: 100px;
+                font-size: 3.5rem;
+            }
         }
 
         .cell.x {
-            color: #4299e1; /* Equivalent to text-blue-400 */
+            color: #60a5fa;
+            text-shadow: 0 0 8px #60a5fa, 0 0 16px rgba(96, 165, 250, 0.5);
+            animation: pop-in 0.3s ease-out forwards;
         }
 
         .cell.o {
-            color: #f56565; /* Equivalent to text-red-400 */
+            color: #f472b6;
+            text-shadow: 0 0 8px #f472b6, 0 0 16px rgba(244, 114, 182, 0.5);
+            animation: pop-in 0.3s ease-out forwards;
+        }
+
+        @keyframes pop-in {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .cell.win {
+            background-color: #1e293b !important;
+        }
+
+        .cell.win.x, .cell.win.o {
+            color: #34d399;
+            animation: pop-in 0.3s ease-out forwards, pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px #34d399, 0 0 20px rgba(52, 211, 153, 0.7); }
+            50% { text-shadow: 0 0 20px #34d399, 0 0 40px rgba(52, 211, 153, 0.7); }
+            100% { text-shadow: 0 0 10px #34d399, 0 0 20px rgba(52, 211, 153, 0.7); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #username-modal {
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
-<body class="text-white flex items-center justify-center min-h-screen">
-    <!-- Main game container -->
-    <div class="container mx-auto p-4 max-w-md">
-        <div class="game-wrapper bg-gray-800/50 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
-            <h1 class="text-3xl sm:text-4xl font-bold text-center mb-4">Tic-Tac-Toe AI</h1>
+<body class="flex items-center justify-center min-h-screen">
+    
+    <!-- Username Modal -->
+    <div id="username-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="game-wrapper bg-slate-800/80 p-8 rounded-2xl border border-slate-700 w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold mb-4">Welcome!</h2>
+            <p class="text-slate-400 mb-6">Please enter your name to begin.</p>
+            <input type="text" id="username-input" placeholder="Your Name" class="w-full bg-slate-700 border border-slate-600 rounded-lg p-3 text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none transition mb-4">
+            <button id="start-game-btn" class="w-full bg-blue-600 hover:bg-blue-700 rounded-lg py-3 font-semibold transition shadow-lg hover:shadow-blue-600/50">Start Playing</button>
+        </div>
+    </div>
+    
+    <div class="container mx-auto p-4 max-w-lg hidden">
+        <div class="game-wrapper bg-gray-800/50 backdrop-blur-sm p-6 sm:p-8 rounded-2xl border border-gray-700">
+            <h1 class="text-3xl sm:text-4xl font-bold text-center mb-4">4-in-a-Row Tic-Tac-Toe</h1>
             
-            <!-- Controls for difficulty and new game -->
-            <div class="controls flex justify-between items-center mb-4 gap-4">
+            <div class="controls flex items-end justify-between gap-4 mb-6">
                 <div class="flex-grow">
-                     <label for="difficulty" class="sr-only">Difficulty</label>
-                     <select id="difficulty" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    <label for="difficulty" class="text-sm text-gray-400">AI Difficulty</label>
+                    <select id="difficulty" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                         <option value="easy">Easy</option>
                         <option value="medium">Medium</option>
-                        <option value="hard" selected>Hard (Unbeatable)</option>
+                        <option value="hard" selected>Hard</option>
                     </select>
                 </div>
-                <button id="reset" class="bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-2 font-semibold transition shadow-lg hover:shadow-blue-600/50">New Game</button>
+                <button id="reset" class="bg-blue-600 hover:bg-blue-700 rounded-lg py-2 px-6 font-semibold transition shadow-lg hover:shadow-blue-600/50">New Game</button>
             </div>
             
-            <!-- Game status message -->
             <div class="status text-center text-lg text-gray-300 mb-4 h-7" id="status">Your turn (X)</div>
             
-            <!-- Tic Tac Toe board -->
-            <div class="board mx-auto" id="board"></div>
+            <div class="flex justify-center">
+                 <div class="board" id="board"></div>
+            </div>
             
-            <!-- Score display -->
             <div class="score flex justify-around mt-6 text-lg">
-                <span class="font-medium">Player (X): <span id="player-score" class="font-bold text-blue-400">0</span></span>
+                <span class="font-medium"><span id="player-name-display">Player</span> (X): <span id="player-score" class="font-bold text-blue-400">0</span></span>
                 <span class="font-medium">AI (O): <span id="ai-score" class="font-bold text-red-400">0</span></span>
             </div>
         </div>
@@ -88,27 +135,59 @@
     <script>
         class TicTacToe {
             constructor() {
-                this.board = Array(9).fill(null);
-                this.currentPlayer = 'X';
-                this.gameActive = true;
                 this.playerScore = 0;
                 this.aiScore = 0;
-                // Get initial difficulty from the select element
-                this.difficulty = document.getElementById('difficulty').value;
+                this.username = 'Player';
+                this.promptForUsername();
+            }
 
-                this.initGame();
+            promptForUsername() {
+                const modal = document.getElementById('username-modal');
+                const input = document.getElementById('username-input');
+                const startBtn = document.getElementById('start-game-btn');
+                const gameContainer = document.querySelector('.container');
+                
+                const startGame = () => {
+                    const username = input.value.trim();
+                    if (username) {
+                        this.username = username;
+                    }
+                    modal.classList.add('hidden');
+                    gameContainer.classList.remove('hidden');
+                    this.initGame();
+                };
+
+                startBtn.addEventListener('click', startGame);
+                input.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') {
+                        startGame();
+                    }
+                });
             }
 
             initGame() {
+                this.setupGameSettings();
+                this.board = Array(this.boardSize * this.boardSize).fill(null);
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                
                 this.createBoard();
                 this.setupEventListeners();
                 this.updateScore();
+                this.updateStatus();
+            }
+
+            setupGameSettings() {
+                this.boardSize = 4;
+                this.winCondition = 4;
+                this.difficulty = document.getElementById('difficulty').value;
             }
 
             createBoard() {
                 const boardElement = document.getElementById('board');
                 boardElement.innerHTML = '';
-                for (let i = 0; i < 9; i++) {
+
+                for (let i = 0; i < this.boardSize * this.boardSize; i++) {
                     const cell = document.createElement('div');
                     cell.classList.add('cell');
                     cell.dataset.index = i;
@@ -117,38 +196,35 @@
             }
 
             setupEventListeners() {
-                document.getElementById('board').addEventListener('click', (e) => {
-                    // Check for valid move
-                    if (!e.target.classList.contains('cell') || !this.gameActive) return;
-                    const index = e.target.dataset.index;
-                    if (this.board[index] || this.currentPlayer !== 'X') return;
-                    this.makeMove(index, 'X');
-                });
-
+                if (!this.boardListener) {
+                    this.boardListener = (e) => {
+                        if (!e.target.classList.contains('cell') || !this.gameActive) return;
+                        const index = e.target.dataset.index;
+                        if (this.board[index] || this.currentPlayer !== 'X') return;
+                        this.makeMove(parseInt(index), 'X');
+                    };
+                    document.getElementById('board').addEventListener('click', this.boardListener);
+                }
+                
                 document.getElementById('reset').addEventListener('click', () => this.resetGame());
-                document.getElementById('difficulty').addEventListener('change', (e) => {
-                    this.difficulty = e.target.value;
-                    this.resetGame();
-                });
+                document.getElementById('difficulty').addEventListener('change', () => this.resetGame());
             }
 
             makeMove(index, player) {
-                if (!this.gameActive || this.board[index] !== null) {
-                    return;
-                }
+                if (!this.gameActive || this.board[index] !== null) return;
 
                 this.board[index] = player;
                 const cell = document.querySelector(`[data-index="${index}"]`);
-                cell.classList.add(player.toLowerCase());
                 cell.textContent = player;
+                cell.classList.add(player.toLowerCase());
 
-                const winner = this.checkWinner(this.board);
-                if (winner) {
-                    this.endGame(winner);
+                const winnerInfo = this.checkWinner();
+                if (winnerInfo) {
+                    this.endGame(winnerInfo);
                     return;
                 }
                 if (!this.board.includes(null)) {
-                    this.endGame('draw');
+                    this.endGame({ winner: 'draw' });
                     return;
                 }
 
@@ -156,12 +232,11 @@
                 this.updateStatus();
 
                 if (this.currentPlayer === 'O') {
-                    // Disable board during AI's turn
                     document.getElementById('board').style.pointerEvents = 'none';
                     this.aiMove();
                 }
             }
-
+            
             aiMove() {
                 let move;
                 switch (this.difficulty) {
@@ -169,96 +244,130 @@
                         move = this.getRandomMove();
                         break;
                     case 'medium':
-                        move = Math.random() > 0.5 ? this.getBestMove() : this.getRandomMove();
+                        move = Math.random() > 0.5 ? this.getStrategicMove() : this.getRandomMove();
                         break;
                     case 'hard':
-                        move = this.getBestMove();
+                        move = this.getStrategicMove();
                         break;
                 }
+
                 setTimeout(() => {
                     this.makeMove(move, 'O');
-                    // Re-enable board after AI's turn
                     document.getElementById('board').style.pointerEvents = 'auto';
-                }, 600); // Simulate AI "thinking"
+                }, 600);
             }
 
-            getRandomMove() {
-                const available = this.board.reduce((acc, val, idx) =>
-                    val === null ? [...acc, idx] : acc, []);
-                return available[Math.floor(Math.random() * available.length)];
+            getStrategicMove() {
+                let winningMove = this.findWinningMove('O');
+                if (winningMove !== null) return winningMove;
+                
+                let blockingMove = this.findWinningMove('X');
+                if (blockingMove !== null) return blockingMove;
+
+                const availableMoves = this.getAvailableMoves();
+                const centerMoves = this.getCenterBiasedMoves(availableMoves);
+                if (centerMoves.length > 0) return centerMoves[Math.floor(Math.random() * centerMoves.length)];
+
+                return this.getRandomMove();
             }
 
-            getBestMove() {
-                let bestScore = -Infinity;
-                let move;
-                for (let i = 0; i < 9; i++) {
-                    if (this.board[i] === null) {
-                        this.board[i] = 'O';
-                        let score = this.minimax(this.board, 0, false);
-                        this.board[i] = null;
-                        if (score > bestScore) {
-                            bestScore = score;
-                            move = i;
-                        }
-                    }
-                }
-                return move;
-            }
-
-            minimax(board, depth, isMaximizing) {
-                const winner = this.checkWinner(board);
-                if (winner === 'O') return 10 - depth;
-                if (winner === 'X') return -10 + depth;
-                if (!board.includes(null)) return 0;
-
-                if (isMaximizing) {
-                    let bestScore = -Infinity;
-                    for (let i = 0; i < 9; i++) {
-                        if (board[i] === null) {
-                            board[i] = 'O';
-                            let score = this.minimax(board, depth + 1, false);
-                            board[i] = null;
-                            bestScore = Math.max(score, bestScore);
-                        }
-                    }
-                    return bestScore;
-                } else {
-                    let bestScore = Infinity;
-                    for (let i = 0; i < 9; i++) {
-                        if (board[i] === null) {
-                            board[i] = 'X';
-                            let score = this.minimax(board, depth + 1, true);
-                            board[i] = null;
-                            bestScore = Math.min(score, bestScore);
-                        }
-                    }
-                    return bestScore;
-                }
-            }
-
-            checkWinner(board) {
-                const wins = [
-                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-                    [0, 4, 8], [2, 4, 6]
-                ];
-
-                for (const [a, b, c] of wins) {
-                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-                        return board[a];
+            findWinningMove(player) {
+                const availableMoves = this.getAvailableMoves();
+                for (const move of availableMoves) {
+                    const tempBoard = [...this.board];
+                    tempBoard[move] = player;
+                    if (this.checkWinner(tempBoard)) {
+                        return move;
                     }
                 }
                 return null;
             }
 
+            getCenterBiasedMoves(moves) {
+                const scoredMoves = moves.map(move => {
+                    let score = 0;
+                    const { row, col } = this.getCoords(move);
+                    for (let r = -1; r <= 1; r++) {
+                        for (let c = -1; c <= 1; c++) {
+                            if (r === 0 && c === 0) continue;
+                            const neighbor = this.board[this.getIndex(row + r, col + c)];
+                            if (neighbor) score++;
+                        }
+                    }
+                    return { move, score };
+                });
+                scoredMoves.sort((a, b) => b.score - a.score);
+                const bestScore = scoredMoves[0].score;
+                return scoredMoves.filter(m => m.score === bestScore).map(m => m.move);
+            }
+
+            getRandomMove() {
+                const available = this.getAvailableMoves();
+                return available[Math.floor(Math.random() * available.length)];
+            }
+            
+            getAvailableMoves() {
+                return this.board.reduce((acc, val, idx) => (val === null ? [...acc, idx] : acc), []);
+            }
+            
+            getCoords(index) {
+                return { row: Math.floor(index / this.boardSize), col: index % this.boardSize };
+            }
+
+            getIndex(row, col) {
+                if (row < 0 || row >= this.boardSize || col < 0 || col >= this.boardSize) return -1;
+                return row * this.boardSize + col;
+            }
+
+            checkWinner(boardState = this.board) {
+                for (let i = 0; i < boardState.length; i++) {
+                    if (boardState[i] === null) continue;
+
+                    const player = boardState[i];
+                    const { row, col } = this.getCoords(i);
+                    const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+
+                    for (const [dr, dc] of directions) {
+                        const combination = [i];
+                        let count = 1;
+                        for (let j = 1; j < this.winCondition; j++) {
+                            const newRow = row + dr * j;
+                            const newCol = col + dc * j;
+                            const index = this.getIndex(newRow, newCol);
+                            if (index !== -1 && boardState[index] === player) {
+                                combination.push(index);
+                                count++;
+                            } else {
+                                break;
+                            }
+                        }
+                        if (count === this.winCondition) {
+                            return { winner: player, combination };
+                        }
+                    }
+                }
+                return null;
+            }
+
+            highlightWinningCells(combination) {
+                combination.forEach(index => {
+                    const cell = document.querySelector(`[data-index="${index}"]`);
+                    cell.classList.add('win');
+                });
+            }
+
             endGame(result) {
                 this.gameActive = false;
-                if (result === 'X') {
+                const { winner, combination } = result;
+
+                if (winner === 'X') {
                     this.playerScore++;
-                    this.updateStatus('You win! 🎉');
-                } else if (result === 'O') {
+                    this.updateStatus(`${this.username} wins! 🎉`);
+                    this.highlightWinningCells(combination);
+                } else if (winner === 'O') {
                     this.aiScore++;
                     this.updateStatus('AI wins! 🤖');
+                    this.highlightWinningCells(combination);
                 } else {
                     this.updateStatus('It\'s a Draw!');
                 }
@@ -266,20 +375,16 @@
             }
 
             resetGame() {
-                this.board = Array(9).fill(null);
-                this.currentPlayer = 'X';
-                this.gameActive = true;
-                this.createBoard();
-                this.updateStatus();
-                document.getElementById('board').style.pointerEvents = 'auto';
+                this.initGame();
             }
 
             updateStatus(text) {
                 document.getElementById('status').textContent = text ||
-                    `${this.currentPlayer === 'X' ? 'Your' : "AI's"} turn (${this.currentPlayer})`;
+                    `${this.currentPlayer === 'X' ? `${this.username}'s` : "AI's"} turn (${this.currentPlayer})`;
             }
 
             updateScore() {
+                document.getElementById('player-name-display').textContent = this.username;
                 document.getElementById('player-score').textContent = this.playerScore;
                 document.getElementById('ai-score').textContent = this.aiScore;
             }
@@ -289,3 +394,4 @@
     </script>
 </body>
 </html>
+
