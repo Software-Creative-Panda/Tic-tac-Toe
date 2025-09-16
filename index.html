@@ -4,28 +4,288 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tic-Tac-Toe AI</title>
-    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Equivalent to bg-gray-900 */
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem; /* Equivalent to gap-2 */
+            width: 300px;
+            height: 300px;
+        }
+
+        @media (min-width: 640px) {
+            .board {
+                width: 400px;
+                height: 400px;
+            }
+        }
+
+        .cell {
+            background-color: #2d3748; /* Equivalent to bg-gray-800 */
+            border-radius: 0.5rem; /* Equivalent to rounded-lg */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .cell:hover {
+            background-color: #4a5568; /* Equivalent to bg-gray-700 */
+        }
+
+        .cell.x {
+            color: #4299e1; /* Equivalent to text-blue-400 */
+        }
+
+        .cell.o {
+            color: #f56565; /* Equivalent to text-red-400 */
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="game-wrapper">
-            <h1>Tic-Tac-Toe</h1>
-            <div class="controls">
-                <select id="difficulty">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard" selected>Hard</option>
-                </select>
-                <button id="reset">New Game</button>
+<body class="text-white flex items-center justify-center min-h-screen">
+    <!-- Main game container -->
+    <div class="container mx-auto p-4 max-w-md">
+        <div class="game-wrapper bg-gray-800/50 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-700">
+            <h1 class="text-3xl sm:text-4xl font-bold text-center mb-4">Tic-Tac-Toe AI</h1>
+            
+            <!-- Controls for difficulty and new game -->
+            <div class="controls flex justify-between items-center mb-4 gap-4">
+                <div class="flex-grow">
+                     <label for="difficulty" class="sr-only">Difficulty</label>
+                     <select id="difficulty" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard" selected>Hard (Unbeatable)</option>
+                    </select>
+                </div>
+                <button id="reset" class="bg-blue-600 hover:bg-blue-700 rounded-lg px-5 py-2 font-semibold transition shadow-lg hover:shadow-blue-600/50">New Game</button>
             </div>
-            <div class="status" id="status">Your turn (X)</div>
-            <div class="board" id="board"></div>
-            <div class="score">
-                <span>Player (X): <span id="player-score">0</span></span>
-                <span>AI (O): <span id="ai-score">0</span></span>
+            
+            <!-- Game status message -->
+            <div class="status text-center text-lg text-gray-300 mb-4 h-7" id="status">Your turn (X)</div>
+            
+            <!-- Tic Tac Toe board -->
+            <div class="board mx-auto" id="board"></div>
+            
+            <!-- Score display -->
+            <div class="score flex justify-around mt-6 text-lg">
+                <span class="font-medium">Player (X): <span id="player-score" class="font-bold text-blue-400">0</span></span>
+                <span class="font-medium">AI (O): <span id="ai-score" class="font-bold text-red-400">0</span></span>
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        class TicTacToe {
+            constructor() {
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                this.playerScore = 0;
+                this.aiScore = 0;
+                // Get initial difficulty from the select element
+                this.difficulty = document.getElementById('difficulty').value;
+
+                this.initGame();
+            }
+
+            initGame() {
+                this.createBoard();
+                this.setupEventListeners();
+                this.updateScore();
+            }
+
+            createBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.index = i;
+                    boardElement.appendChild(cell);
+                }
+            }
+
+            setupEventListeners() {
+                document.getElementById('board').addEventListener('click', (e) => {
+                    // Check for valid move
+                    if (!e.target.classList.contains('cell') || !this.gameActive) return;
+                    const index = e.target.dataset.index;
+                    if (this.board[index] || this.currentPlayer !== 'X') return;
+                    this.makeMove(index, 'X');
+                });
+
+                document.getElementById('reset').addEventListener('click', () => this.resetGame());
+                document.getElementById('difficulty').addEventListener('change', (e) => {
+                    this.difficulty = e.target.value;
+                    this.resetGame();
+                });
+            }
+
+            makeMove(index, player) {
+                if (!this.gameActive || this.board[index] !== null) {
+                    return;
+                }
+
+                this.board[index] = player;
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                cell.classList.add(player.toLowerCase());
+                cell.textContent = player;
+
+                const winner = this.checkWinner(this.board);
+                if (winner) {
+                    this.endGame(winner);
+                    return;
+                }
+                if (!this.board.includes(null)) {
+                    this.endGame('draw');
+                    return;
+                }
+
+                this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                this.updateStatus();
+
+                if (this.currentPlayer === 'O') {
+                    // Disable board during AI's turn
+                    document.getElementById('board').style.pointerEvents = 'none';
+                    this.aiMove();
+                }
+            }
+
+            aiMove() {
+                let move;
+                switch (this.difficulty) {
+                    case 'easy':
+                        move = this.getRandomMove();
+                        break;
+                    case 'medium':
+                        move = Math.random() > 0.5 ? this.getBestMove() : this.getRandomMove();
+                        break;
+                    case 'hard':
+                        move = this.getBestMove();
+                        break;
+                }
+                setTimeout(() => {
+                    this.makeMove(move, 'O');
+                    // Re-enable board after AI's turn
+                    document.getElementById('board').style.pointerEvents = 'auto';
+                }, 600); // Simulate AI "thinking"
+            }
+
+            getRandomMove() {
+                const available = this.board.reduce((acc, val, idx) =>
+                    val === null ? [...acc, idx] : acc, []);
+                return available[Math.floor(Math.random() * available.length)];
+            }
+
+            getBestMove() {
+                let bestScore = -Infinity;
+                let move;
+                for (let i = 0; i < 9; i++) {
+                    if (this.board[i] === null) {
+                        this.board[i] = 'O';
+                        let score = this.minimax(this.board, 0, false);
+                        this.board[i] = null;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            move = i;
+                        }
+                    }
+                }
+                return move;
+            }
+
+            minimax(board, depth, isMaximizing) {
+                const winner = this.checkWinner(board);
+                if (winner === 'O') return 10 - depth;
+                if (winner === 'X') return -10 + depth;
+                if (!board.includes(null)) return 0;
+
+                if (isMaximizing) {
+                    let bestScore = -Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (board[i] === null) {
+                            board[i] = 'O';
+                            let score = this.minimax(board, depth + 1, false);
+                            board[i] = null;
+                            bestScore = Math.max(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                } else {
+                    let bestScore = Infinity;
+                    for (let i = 0; i < 9; i++) {
+                        if (board[i] === null) {
+                            board[i] = 'X';
+                            let score = this.minimax(board, depth + 1, true);
+                            board[i] = null;
+                            bestScore = Math.min(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                }
+            }
+
+            checkWinner(board) {
+                const wins = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                    [0, 4, 8], [2, 4, 6]
+                ];
+
+                for (const [a, b, c] of wins) {
+                    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                        return board[a];
+                    }
+                }
+                return null;
+            }
+
+            endGame(result) {
+                this.gameActive = false;
+                if (result === 'X') {
+                    this.playerScore++;
+                    this.updateStatus('You win! 🎉');
+                } else if (result === 'O') {
+                    this.aiScore++;
+                    this.updateStatus('AI wins! 🤖');
+                } else {
+                    this.updateStatus('It\'s a Draw!');
+                }
+                this.updateScore();
+            }
+
+            resetGame() {
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.gameActive = true;
+                this.createBoard();
+                this.updateStatus();
+                document.getElementById('board').style.pointerEvents = 'auto';
+            }
+
+            updateStatus(text) {
+                document.getElementById('status').textContent = text ||
+                    `${this.currentPlayer === 'X' ? 'Your' : "AI's"} turn (${this.currentPlayer})`;
+            }
+
+            updateScore() {
+                document.getElementById('player-score').textContent = this.playerScore;
+                document.getElementById('ai-score').textContent = this.aiScore;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => new TicTacToe());
+    </script>
 </body>
 </html>
