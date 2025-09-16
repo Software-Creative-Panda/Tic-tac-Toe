@@ -89,15 +89,6 @@
             background-color: rgba(15, 23, 42, 0.8);
             backdrop-filter: blur(5px);
         }
-
-        .custom-label {
-            background-color: #4CAF50; /* Green background */
-            color: white; /* White text */
-            padding: 5px 10px; /* Add some padding */
-            border-radius: 5px; /* Rounded corners */
-            font-size: 14px; /* Adjust font size */
-            font-weight: bold; /* Make text bold */
-}
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
@@ -119,7 +110,11 @@
             <div class="controls flex items-end justify-between gap-4 mb-6">
                 <div class="flex-grow">
                     <label for="difficulty" class="text-sm text-gray-400">AI Difficulty</label>
-                    <label for="name" class="custom-label">Name:</label> <input type="text" id="name" name="name">
+                    <select id="difficulty" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard" selected>Hard</option>
+                    </select>
                 </div>
                 <button id="reset" class="bg-blue-600 hover:bg-blue-700 rounded-lg py-2 px-6 font-semibold transition shadow-lg hover:shadow-blue-600/50">New Game</button>
             </div>
